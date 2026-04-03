@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>ZMALER - Dashboard</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -321,12 +325,6 @@
             color: #aaa;
             font-size: 11px;
         }
-        
-        .auth-status {
-            padding: 10px;
-            border-radius: 10px;
-            margin-top: 10px;
-        }
     </style>
 </head>
 <body>
@@ -357,6 +355,25 @@
     <div class="main-content">
         <!-- Send Tab -->
         <div id="sendTab">
+            <!-- Gmail Auth Card -->
+            <div class="card">
+                <h3>🔐 Gmail API Configuration</h3>
+                <div class="form-group">
+                    <label>Upload client_secret.json file</label>
+                    <input type="file" id="clientSecretFile" accept=".json">
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="uploadClientSecret()">📤 Upload</button>
+                    </div>
+                    <small>Download from Google Cloud Console > Credentials (Desktop App type)</small>
+                </div>
+                <div id="authStatus">
+                    <span id="authStatusText">⚠️ Not configured</span>
+                </div>
+                <div class="button-group" id="authBtnGroup" style="display: none;">
+                    <button class="btn btn-success" onclick="authorizeGmail()">🔐 Authorize Gmail</button>
+                </div>
+            </div>
+            
             <!-- Send Method -->
             <div class="card">
                 <h3>📡 Send Method</h3>
@@ -366,40 +383,12 @@
                 </div>
             </div>
             
-            <!-- Gmail API Card -->
-            <div class="card" id="gmailAuthCard">
-                <h3>🔐 Gmail API Configuration</h3>
-                <div class="form-group">
-                    <label>Step 1: Upload client_secret.json file</label>
-                    <input type="file" id="clientSecretFile" accept=".json">
-                    <div class="button-group">
-                        <button class="btn btn-primary" onclick="uploadClientSecret()">📤 Upload</button>
-                    </div>
-                    <small>Download client_secret.json from Google Cloud Console > Credentials</small>
-                </div>
-                <div id="authStatus" class="auth-status">
-                    <span id="authStatusText">⚠️ Not configured</span>
-                </div>
-                <div class="button-group" id="authBtnGroup" style="display: none;">
-                    <button class="btn btn-success" onclick="authorizeGmail()">🔐 Authorize Gmail Account</button>
-                </div>
-            </div>
-            
             <!-- SMTP Card -->
             <div class="card" id="smtpCard" style="display: none;">
                 <h3>⚙️ SMTP Configuration</h3>
                 <div class="form-group">
                     <label>SMTP Server</label>
-                    <select id="smtpServer" onchange="updateSmtpFields()">
-                        <option value="Gmail">Gmail (smtp.gmail.com:587)</option>
-                        <option value="Yahoo">Yahoo (smtp.mail.yahoo.com:587)</option>
-                        <option value="Outlook">Outlook (smtp-mail.outlook.com:587)</option>
-                        <option value="Custom">Custom Server</option>
-                    </select>
-                </div>
-                <div class="form-group" id="customSmtpHost" style="display: none;">
-                    <label>Custom SMTP Host</label>
-                    <input type="text" id="customHost" placeholder="smtp.yourserver.com">
+                    <input type="text" id="smtpHost" placeholder="smtp.gmail.com">
                 </div>
                 <div class="form-group">
                     <label>SMTP Port</label>
@@ -420,7 +409,7 @@
             </div>
             
             <!-- Sender Info -->
-            <div class="card" id="senderInfoCard">
+            <div class="card">
                 <h3>📤 Sender Information</h3>
                 <div class="form-group">
                     <label>Sender Name</label>
@@ -441,7 +430,7 @@
                 <div class="form-group">
                     <label>Subject</label>
                     <input type="text" id="subject" placeholder="Email Subject">
-                    <small>可用: #NAME#, #EMAIL#, #DATE#, #BILL#, #RAND#</small>
+                    <small>Use: #NAME#, #EMAIL#, #DATE#, #BILL#, #RAND#</small>
                 </div>
                 
                 <div class="form-group">
@@ -538,7 +527,6 @@
                     <hr style="margin: 20px 0; border-color: rgba(255,255,255,0.1);">
                     <p><strong>👨‍💻 Developer:</strong> <span id="devName"></span></p>
                     <p><strong>📱 WhatsApp:</strong> <span id="whatsappNum"></span></p>
-                    <p><strong>📧 Email:</strong> <span id="devEmail"></span></p>
                     <hr style="margin: 20px 0; border-color: rgba(255,255,255,0.1);">
                     <p>© 2024 ZMALER. All rights reserved.</p>
                 </div>
@@ -556,14 +544,7 @@
         let isSending = false;
         let cancelFlag = false;
         let currentEmails = [];
-        let attachments = [];
         let attachmentPaths = [];
-        
-        const SMTP_SERVERS = {
-            "Gmail": {"host": "smtp.gmail.com", "port": 587},
-            "Yahoo": {"host": "smtp.mail.yahoo.com", "port": 587},
-            "Outlook": {"host": "smtp-mail.outlook.com", "port": 587}
-        };
         
         async function loadUserData() {
             try {
@@ -573,7 +554,6 @@
                 document.getElementById('usernameDisplay').innerHTML = `👤 ${data.username}`;
                 document.getElementById('devName').innerText = data.developer_name;
                 document.getElementById('whatsappNum').innerText = data.whatsapp_number;
-                document.getElementById('devEmail').innerText = data.developer_email;
                 
                 const creditsLeft = data.credits_left;
                 const maxCredits = data.max_credits;
@@ -593,41 +573,26 @@
                 if (data.authorized) {
                     document.getElementById('authStatusText').innerHTML = '<span class="status-badge status-success">✅ Gmail API Authorized</span>';
                     document.getElementById('authBtnGroup').style.display = 'none';
+                } else if (data.has_client_secret) {
+                    document.getElementById('authStatusText').innerHTML = '<span class="status-badge status-warning">⚠️ Client secret uploaded. Click Authorize.</span>';
+                    document.getElementById('authBtnGroup').style.display = 'block';
                 } else {
-                    if (data.has_client_secret) {
-                        document.getElementById('authStatusText').innerHTML = '<span class="status-badge status-warning">⚠️ Client secret uploaded. Click Authorize to continue.</span>';
-                        document.getElementById('authBtnGroup').style.display = 'block';
-                    } else {
-                        document.getElementById('authStatusText').innerHTML = '<span class="status-badge status-error">❌ No client_secret.json. Please upload first.</span>';
-                        document.getElementById('authBtnGroup').style.display = 'none';
-                    }
+                    document.getElementById('authStatusText').innerHTML = '<span class="status-badge status-error">❌ Upload client_secret.json first</span>';
+                    document.getElementById('authBtnGroup').style.display = 'none';
                 }
             } catch (error) {
-                console.error('Error checking auth:', error);
+                console.error('Error:', error);
             }
         }
         
         function toggleSendMethod() {
             const method = document.querySelector('input[name="sendMethod"]:checked').value;
             if (method === 'gmail_api') {
-                document.getElementById('gmailAuthCard').style.display = 'block';
                 document.getElementById('smtpCard').style.display = 'none';
                 document.getElementById('senderEmailGroup').style.display = 'block';
-                checkGmailAuth();
             } else {
-                document.getElementById('gmailAuthCard').style.display = 'none';
                 document.getElementById('smtpCard').style.display = 'block';
                 document.getElementById('senderEmailGroup').style.display = 'none';
-            }
-        }
-        
-        function updateSmtpFields() {
-            const server = document.getElementById('smtpServer').value;
-            if (server === 'Custom') {
-                document.getElementById('customSmtpHost').style.display = 'block';
-            } else {
-                document.getElementById('customSmtpHost').style.display = 'none';
-                document.getElementById('smtpPort').value = SMTP_SERVERS[server].port;
             }
         }
         
@@ -664,8 +629,7 @@
                 
                 if (data.success) {
                     addLog('✅ Client secret uploaded successfully');
-                    document.getElementById('authStatusText').innerHTML = '<span class="status-badge status-warning">⚠️ Uploaded. Click Authorize to continue.</span>';
-                    document.getElementById('authBtnGroup').style.display = 'block';
+                    checkGmailAuth();
                 } else {
                     addLog('❌ Error: ' + data.error, 'error');
                 }
@@ -677,18 +641,20 @@
         
         async function authorizeGmail() {
             showLoading(true);
+            addLog('🔐 Opening authorization window...');
+            
             try {
-                const response = await fetch('/get_auth_url');
+                const response = await fetch('/authorize_gmail', { method: 'POST' });
                 const data = await response.json();
                 
-                if (data.auth_url) {
-                    window.open(data.auth_url, '_blank');
-                    addLog('🔐 Authorization window opened. Please complete the process, then return to dashboard.');
+                if (data.success) {
+                    addLog('✅ Gmail authorized successfully!');
+                    checkGmailAuth();
                 } else {
-                    addLog('❌ Failed to get auth URL: ' + (data.error || 'Unknown error'), 'error');
+                    addLog('❌ Authorization failed: ' + data.error, 'error');
                 }
             } catch (error) {
-                addLog('❌ Authorization error: ' + error.message, 'error');
+                addLog('❌ Error: ' + error.message, 'error');
             }
             showLoading(false);
         }
@@ -714,10 +680,13 @@
                         body: formData
                     });
                     const data = await response.json();
+                    
                     if (data.success) {
                         attachmentPaths.push(data.path);
-                        addAttachmentToList(files[i].name);
+                        addAttachmentToList(files[i].name, data.path);
                         addLog(`📎 Attachment added: ${files[i].name}`);
+                    } else {
+                        addLog(`❌ Error uploading ${files[i].name}: ${data.error}`, 'error');
                     }
                 } catch (error) {
                     addLog(`❌ Error uploading ${files[i].name}: ${error.message}`, 'error');
@@ -728,23 +697,22 @@
             fileInput.value = '';
         }
         
-        function addAttachmentToList(filename) {
+        function addAttachmentToList(filename, filepath) {
             const list = document.getElementById('attachmentList');
             const item = document.createElement('div');
             item.className = 'attachment-item';
-            item.innerHTML = `📎 ${filename} <span class="remove-attachment" onclick="removeAttachment(this, '${filename}')">✖</span>`;
+            item.innerHTML = `📎 ${filename} <span class="remove-attachment" onclick="removeAttachment(this, '${filepath}')">✖</span>`;
             list.appendChild(item);
         }
         
-        function removeAttachment(element, filename) {
+        function removeAttachment(element, filepath) {
             element.parentElement.remove();
-            // Note: In a full implementation, you'd also remove from attachmentPaths
-            addLog(`Removed attachment: ${filename}`);
+            attachmentPaths = attachmentPaths.filter(p => p !== filepath);
         }
         
         async function clearAttachments() {
             try {
-                await fetch('/clear_temp_attachments', { method: 'POST' });
+                await fetch('/clear_attachments', { method: 'POST' });
                 attachmentPaths = [];
                 document.getElementById('attachmentList').innerHTML = '';
                 addLog('🗑️ All attachments cleared');
@@ -797,6 +765,8 @@
                     }
                     document.getElementById('emailPreview').style.display = 'block';
                     addLog(`📂 Loaded ${data.count} email addresses`);
+                } else {
+                    addLog('❌ Error: ' + (data.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 addLog('❌ Upload error: ' + error.message, 'error');
@@ -869,12 +839,7 @@
             
             let smtpHost = '', smtpPort = 587, smtpPassword = '';
             if (sendMethod === 'smtp') {
-                const server = document.getElementById('smtpServer').value;
-                if (server === 'Custom') {
-                    smtpHost = document.getElementById('customHost').value;
-                } else {
-                    smtpHost = SMTP_SERVERS[server].host;
-                }
+                smtpHost = document.getElementById('smtpHost').value;
                 smtpPort = parseInt(document.getElementById('smtpPort').value);
                 smtpPassword = document.getElementById('smtpPassword').value;
             }
@@ -895,7 +860,6 @@
                     html_content: htmlBody,
                     sender_name: senderName,
                     sender_email: senderEmail,
-                    body_type: bodyType,
                     send_method: sendMethod,
                     attachments: attachmentPaths
                 };
@@ -994,7 +958,9 @@
             document.getElementById('sendTab').style.display = tab === 'send' ? 'block' : 'none';
             document.getElementById('termsTab').style.display = tab === 'terms' ? 'block' : 'none';
             document.getElementById('aboutTab').style.display = tab === 'about' ? 'block' : 'none';
+            
             if (tab === 'terms') loadTerms();
+            
             if (window.innerWidth <= 768) {
                 document.getElementById('sidebar').classList.remove('open');
             }
@@ -1004,7 +970,7 @@
             try {
                 const response = await fetch('/get_terms');
                 const data = await response.json();
-                document.getElementById('termsContent').innerHTML = `<p>${data.terms.replace(/\n/g, '<br>')}</p>`;
+                document.getElementById('termsContent').innerHTML = `<p style="white-space: pre-line;">${data.terms}</p>`;
             } catch (error) {
                 console.error('Error:', error);
             }
@@ -1039,12 +1005,9 @@
         async function init() {
             await loadUserData();
             await generateRandomName();
+            await checkGmailAuth();
             toggleSendMethod();
-            updateSmtpFields();
             toggleBodyType();
-            
-            // Check if terms were already accepted from session
-            // This would need a session check endpoint
         }
         
         init();
