@@ -325,6 +325,12 @@
             color: #aaa;
             font-size: 11px;
         }
+        
+        .helper-text {
+            color: #00d4ff;
+            font-size: 11px;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -389,10 +395,12 @@
                 <div class="form-group">
                     <label>SMTP Server</label>
                     <input type="text" id="smtpHost" placeholder="smtp.gmail.com">
+                    <small>Common servers: smtp.gmail.com, smtp.outlook.com, smtp.yahoo.com</small>
                 </div>
                 <div class="form-group">
                     <label>SMTP Port</label>
                     <input type="number" id="smtpPort" value="587">
+                    <small>587 for TLS, 465 for SSL</small>
                 </div>
                 <div class="form-group">
                     <label>SMTP Username (Your Email)</label>
@@ -400,7 +408,8 @@
                 </div>
                 <div class="form-group">
                     <label>SMTP Password / App Password</label>
-                    <input type="password" id="smtpPassword" placeholder="Your password">
+                    <input type="password" id="smtpPassword" placeholder="Your password or app password">
+                    <small>For Gmail, use an App Password (2FA required)</small>
                 </div>
                 <div class="form-group">
                     <label>Sender Name</label>
@@ -430,7 +439,7 @@
                 <div class="form-group">
                     <label>Subject</label>
                     <input type="text" id="subject" placeholder="Email Subject">
-                    <small>Use: #NAME#, #EMAIL#, #DATE#, #BILL#, #RAND#</small>
+                    <small class="helper-text">Available placeholders: #NAME#, #EMAIL#, #DATE#, #TIME#, #BILL#, #RAND#</small>
                 </div>
                 
                 <div class="form-group">
@@ -443,12 +452,26 @@
                 
                 <div class="form-group" id="plainBodyGroup">
                     <label>Plain Text Body</label>
-                    <textarea id="plainBody" placeholder="Enter your email content here..."></textarea>
+                    <textarea id="plainBody" placeholder="Enter your email content here...&#10;&#10;Hello #NAME#,&#10;&#10;Your bill #BILL# is ready.&#10;&#10;Best regards,&#10;The Team"></textarea>
                 </div>
                 
                 <div class="form-group" id="htmlBodyGroup" style="display: none;">
                     <label>HTML Body</label>
-                    <textarea id="htmlBody" placeholder='<html><body><h1>Hello #NAME#</h1><p>Your bill #BILL#</p></body></html>' rows="8"></textarea>
+                    <textarea id="htmlBody" rows="8" placeholder='&lt;html&gt;&#10;&lt;body&gt;&#10;&lt;h1&gt;Hello #NAME#&lt;/h1&gt;&#10;&lt;p&gt;Your bill #BILL# is ready.&lt;/p&gt;&#10;&lt;p&gt;Thank you for your business!&lt;/p&gt;&#10;&lt;/body&gt;&#10;&lt;/html&gt;'></textarea>
+                    <small>You can use HTML tags and placeholders</small>
+                </div>
+            </div>
+            
+            <!-- File to PDF Conversion Card -->
+            <div class="card">
+                <h3>🔄 Convert to PDF</h3>
+                <div class="form-group">
+                    <label>Upload HTML/Image/Word/TXT file to convert to PDF</label>
+                    <input type="file" id="convertFile" accept=".html,.htm,.png,.jpg,.jpeg,.gif,.bmp,.docx,.txt">
+                    <div class="button-group">
+                        <button class="btn btn-primary" onclick="convertToPDF()">🔄 Convert to PDF</button>
+                    </div>
+                    <small>Convert HTML, images (PNG, JPG, GIF, BMP), Word documents (DOCX), or text files to PDF for attachment</small>
                 </div>
             </div>
             
@@ -472,6 +495,7 @@
                 <div class="form-group">
                     <label>Upload Email List (TXT or CSV)</label>
                     <input type="file" id="emailFile" accept=".txt,.csv">
+                    <small>Each email on a new line or comma-separated</small>
                 </div>
                 <div class="button-group">
                     <button class="btn btn-primary" onclick="uploadEmailFile()">📂 Upload & Preview</button>
@@ -550,6 +574,10 @@
             try {
                 const response = await fetch('/get_user_data');
                 const data = await response.json();
+                if (data.error) {
+                    window.location.href = '/';
+                    return;
+                }
                 currentUser = data.username;
                 document.getElementById('usernameDisplay').innerHTML = `👤 ${data.username}`;
                 document.getElementById('devName').innerText = data.developer_name;
@@ -659,6 +687,41 @@
             showLoading(false);
         }
         
+        async function convertToPDF() {
+            const fileInput = document.getElementById('convertFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                addLog('Please select a file to convert', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/convert_to_pdf', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    attachmentPaths.push(data.path);
+                    addAttachmentToList(data.filename, data.path);
+                    addLog(`✅ ${data.message}: ${data.filename}`);
+                } else {
+                    addLog(`❌ Conversion error: ${data.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                addLog(`❌ Error: ${error.message}`, 'error');
+            }
+            
+            showLoading(false);
+            fileInput.value = '';
+        }
+        
         async function uploadAttachments() {
             const fileInput = document.getElementById('attachmentFile');
             const files = fileInput.files;
@@ -701,13 +764,14 @@
             const list = document.getElementById('attachmentList');
             const item = document.createElement('div');
             item.className = 'attachment-item';
-            item.innerHTML = `📎 ${filename} <span class="remove-attachment" onclick="removeAttachment(this, '${filepath}')">✖</span>`;
+            item.innerHTML = `📎 ${escapeHtml(filename)} <span class="remove-attachment" onclick="removeAttachment(this, '${filepath}')">✖</span>`;
             list.appendChild(item);
         }
         
         function removeAttachment(element, filepath) {
             element.parentElement.remove();
             attachmentPaths = attachmentPaths.filter(p => p !== filepath);
+            addLog(`Removed attachment`);
         }
         
         async function clearAttachments() {
@@ -757,11 +821,11 @@
                     document.getElementById('emailCount').textContent = data.count;
                     const emailListDiv = document.getElementById('emailList');
                     emailListDiv.innerHTML = '';
-                    data.emails.slice(0, 20).forEach(email => {
+                    data.emails.slice(0, 50).forEach(email => {
                         emailListDiv.innerHTML += `<div class="log-entry">📧 ${escapeHtml(email)}</div>`;
                     });
-                    if (data.count > 20) {
-                        emailListDiv.innerHTML += `<div class="log-entry">... and ${data.count - 20} more</div>`;
+                    if (data.count > 50) {
+                        emailListDiv.innerHTML += `<div class="log-entry">... and ${data.count - 50} more</div>`;
                     }
                     document.getElementById('emailPreview').style.display = 'block';
                     addLog(`📂 Loaded ${data.count} email addresses`);
@@ -792,24 +856,30 @@
             if (sendMethod === 'gmail_api') {
                 senderName = document.getElementById('senderName').value;
                 senderEmail = document.getElementById('senderEmail').value;
-                if (!senderName) senderName = senderEmail.split('@')[0];
                 if (!senderEmail) {
                     addLog('Please enter sender email', 'error');
                     return;
                 }
+                if (!senderName) senderName = senderEmail.split('@')[0];
             } else {
                 senderName = document.getElementById('smtpSenderName').value;
                 senderEmail = document.getElementById('smtpUsername').value;
-                if (!senderName) senderName = senderEmail.split('@')[0];
+                const smtpPassword = document.getElementById('smtpPassword').value;
+                const smtpHost = document.getElementById('smtpHost').value;
+                
                 if (!senderEmail) {
                     addLog('Please enter SMTP username/email', 'error');
                     return;
                 }
-                const smtpPassword = document.getElementById('smtpPassword').value;
                 if (!smtpPassword) {
                     addLog('Please enter SMTP password', 'error');
                     return;
                 }
+                if (!smtpHost) {
+                    addLog('Please enter SMTP server', 'error');
+                    return;
+                }
+                if (!senderName) senderName = senderEmail.split('@')[0];
             }
             
             subject = document.getElementById('subject').value;
@@ -885,7 +955,8 @@
                         if (data.sent > 0) {
                             addLog(`✅ Sent to ${currentEmails[i]}`);
                         } else {
-                            addLog(`❌ Failed: ${data.failed_emails[0]?.error || 'Unknown error'}`, 'error');
+                            const errorMsg = data.failed_emails[0]?.error || 'Unknown error';
+                            addLog(`❌ Failed to ${currentEmails[i]}: ${errorMsg}`, 'error');
                         }
                     } else {
                         failed++;
@@ -970,7 +1041,7 @@
             try {
                 const response = await fetch('/get_terms');
                 const data = await response.json();
-                document.getElementById('termsContent').innerHTML = `<p style="white-space: pre-line;">${data.terms}</p>`;
+                document.getElementById('termsContent').innerHTML = `<p style="white-space: pre-line;">${escapeHtml(data.terms)}</p>`;
             } catch (error) {
                 console.error('Error:', error);
             }
