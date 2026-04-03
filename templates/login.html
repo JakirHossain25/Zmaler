@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZMALER - Email Marketing Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .login-container {
+            width: 100%;
+            max-width: 450px;
+            padding: 20px;
+        }
+        
+        .login-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 25px 45px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo h1 {
+            font-size: 42px;
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+        
+        .logo p {
+            color: rgba(255,255,255,0.7);
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: white;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .form-group input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(90deg, #00d4ff, #090979);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .error-message {
+            background: rgba(255,68,68,0.2);
+            border: 1px solid #ff4444;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 20px;
+            color: #ff8888;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .info-text {
+            text-align: center;
+            margin-top: 20px;
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+        }
+        
+        .credentials {
+            background: rgba(0,212,255,0.1);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .credentials h4 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .credentials p {
+            color: rgba(255,255,255,0.7);
+            font-size: 12px;
+            margin: 5px 0;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo">
+                <h1>ZMALER</h1>
+                <p>Professional Email Marketing Platform</p>
+            </div>
+            
+            <div id="errorMsg" class="error-message" style="display: none;"></div>
+            
+            <div class="form-group">
+                <label>👤 Username</label>
+                <input type="text" id="username" placeholder="Enter your username" autocomplete="off">
+            </div>
+            
+            <div class="form-group">
+                <label>🔒 Password</label>
+                <input type="password" id="password" placeholder="Enter your password" onkeypress="if(event.key==='Enter') login()">
+            </div>
+            
+            <button class="login-btn" onclick="login()">Login to Dashboard</button>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="color: white; margin-top: 10px;">Logging in...</p>
+            </div>
+            
+            <div class="credentials">
+                <h4>📋 Demo Credentials</h4>
+                <p>Username: <strong>Padma</strong> | Password: <strong>pd1234#</strong></p>
+                <p>Username: <strong>Jamuna</strong> | Password: <strong>jm809</strong></p>
+                <p>Username: <strong>Brahmputra</strong> | Password: <strong>Br123@</strong></p>
+            </div>
+            
+            <div class="info-text">
+                © 2024 ZMALER. All rights reserved.
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function login() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('errorMsg');
+            const loadingDiv = document.getElementById('loading');
+            const loginBtn = document.querySelector('.login-btn');
+            
+            if (!username || !password) {
+                showError('Please enter both username and password');
+                return;
+            }
+            
+            errorDiv.style.display = 'none';
+            loadingDiv.style.display = 'block';
+            loginBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.location.href = '/dashboard';
+                } else {
+                    showError(data.message || 'Invalid username or password');
+                    loadingDiv.style.display = 'none';
+                    loginBtn.disabled = false;
+                }
+            } catch (error) {
+                showError('Network error. Please try again.');
+                loadingDiv.style.display = 'none';
+                loginBtn.disabled = false;
+            }
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
